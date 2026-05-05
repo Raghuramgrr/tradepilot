@@ -1,0 +1,77 @@
+watchlist:
+  - AAPL
+  - MSFT
+  - GOOGL
+  - AMZN
+  - META
+  - NVDA
+  - JPM
+  - BAC
+  - XOM
+  - JNJ
+  - D05.SI
+  - KO
+  - PG
+  - WMT
+  - MCD
+  - VZ
+  - T
+  - USAR 
+  - PFE
+  - INTC
+  - IBM
+  - CVS
+  - NOK
+data:
+  lookback_days: 90       # how many days of history to pull
+  interval: "1d"          # yfinance interval
+
+signals:
+  zscore_window: 20       # rolling mean/std window
+  zscore_entry: 2.0       # entry threshold (|z| > this)
+  zscore_exit: 0.5        # exit when |z| falls below this
+  rsi_window: 14
+  rsi_oversold: 30
+  rsi_overbought: 70
+  bb_window: 20
+  bb_std: 2.0
+  min_confidence: 60      # minimum score (0-100) to surface a signal
+
+regime:
+  vix_max: 35.0           # skip if VIX above this (too volatile)
+  adx_max: 30.0           # skip if ADX above this (trending market)
+  adx_window: 14
+  trend_slope_window: 20  # days for linear slope check
+
+risk:
+  max_position_pct: 0.10  # max 10% of portfolio per position
+  kelly_fraction: 0.25    # fractional Kelly (conservative)
+  stop_loss_atr_mult: 2.0 # stop = entry ± 2×ATR
+  take_profit_atr_mult: 3.0
+  max_open_positions: 6
+  max_portfolio_dd: 0.08  # halt if drawdown > 8%
+
+portfolio:
+  initial_capital: 100000.0
+
+mode: suggest             # "suggest" or "auto"
+
+news:
+  feeds:
+    - https://feeds.finance.yahoo.com/rss/2.0/headline?s={ticker}&region=US&lang=en-US
+  max_age_hours: 24
+
+ 
+earnings:
+  buffer_days: 5          # skip ticker if earnings within N days
+ 
+correlation:
+  max_r: 0.75             # reject new signal if |r| > this with any open position
+  lookback_days: 60       # days of returns used to compute correlation
+ 
+monitor:
+  interval_seconds: 60    # how often the exit monitor checks live prices
+ 
+backtest:
+  lookback_days: 365      # how much history to pull for backtesting
+ 
