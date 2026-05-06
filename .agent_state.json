@@ -1,8 +1,17 @@
 {
-  "capital": 100000.0,
+  "capital": 90050.19985961914,
   "peak_capital": 100000.0,
-  "positions": {},
+  "positions": {
+    "INTC": {
+      "direction": "LONG",
+      "shares": 92,
+      "entry": 108.1500015258789,
+      "stop": 97.0,
+      "target": 124.87,
+      "opened_at": "2026-05-06T14:56:44.584682"
+    }
+  },
   "trade_log": [],
   "created_at": "2026-05-05T12:04:58.497724",
-  "updated_at": "2026-05-05T12:04:58.497738"
+  "updated_at": "2026-05-06T14:56:44.584691"
 }
