@@ -8,6 +8,8 @@ from ..data.fetcher import fetch_news_sentiment
 from ..utils.display import get_logger
 from ..data.calendar import is_near_earnings
 from ..signals.correlation import is_too_correlated
+from ..signals.mtf import confirm as mtf_confirm
+
 log = get_logger(__name__)
 
 
@@ -38,13 +40,21 @@ def evaluate(ticker: str, df: pd.DataFrame, vix: float | None,
     )
     if too_correlated:
         return {"ticker": ticker, "skipped": True, "reason": f"corr {corr_reason}"}
+    mtf_ok, mtf_reason = mtf_confirm(ticker, direction="LONG")
 
     # ── 3. Score signal ──────────────────────────────────────────────
     news = fetch_news_sentiment(ticker)
     confidence, direction = score_signal(ind, news)
 
+
     if confidence < min_conf or direction is None:
         return None
+ 
+    # ── 3b. Multi-timeframe confirmation ─────────────────────────────
+    mtf_ok, mtf_reason = mtf_confirm(ticker, direction)
+    if not mtf_ok:
+        return {"ticker": ticker, "skipped": True, "reason": mtf_reason}
+
 
     # ── 4. Check not already in this position ────────────────────────
     existing = portfolio.get("positions", {}).get(ticker)

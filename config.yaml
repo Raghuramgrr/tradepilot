@@ -22,8 +22,9 @@ watchlist:
   - IBM
   - CVS
   - NOK
+
 data:
-  lookback_days: 90       # how many days of history to pull
+  lookback_days: 364       # how many days of history to pull
   interval: "1d"          # yfinance interval
 
 signals:
@@ -39,7 +40,7 @@ signals:
 
 regime:
   vix_max: 35.0           # skip if VIX above this (too volatile)
-  adx_max: 30.0           # skip if ADX above this (trending market)
+  adx_max: 31.0           # skip if ADX above this (trending market)
   adx_window: 14
   trend_slope_window: 20  # days for linear slope check
 
@@ -73,5 +74,82 @@ monitor:
   interval_seconds: 60    # how often the exit monitor checks live prices
  
 backtest:
-  lookback_days: 365      # how much history to pull for backtesting
+  lookback_days: 730      # how much history to pull for backtesting
  
+
+ # ── DELTA config.yaml — paste at bottom ──────────────────────────
+
+momentum:
+  adx_min: 31           # only fires when ADX above this (mirrors regime.adx_max)
+  breakout_window: 20     # N-day high/low for breakout confirmation
+  volume_mult: 1.2        # volume must be this × rolling avg to confirm
+
+mtf:
+  weekly_ema_fast: 10     # fast EMA span for weekly trend
+  weekly_ema_slow: 30     # slow EMA span for weekly trend
+  gap_threshold: 0.02     # % gap between EMAs to call a trend (2%)
+
+# ── DELTA config.yaml — paste at bottom ──────────────────────────
+
+screener:
+  # Universe to scan — replaces the hardcoded DEFAULT_UNIVERSE list
+  universe:
+    # Mega cap tech
+    - AAPL
+    - MSFT
+    - GOOGL
+    - AMZN
+    - META
+    - NVDA
+    - TSLA
+    # Financials
+    - JPM
+    - BAC
+    - GS
+    # Healthcare / pharma
+    - JNJ
+    - PFE
+    - CVS
+    - ABBV
+    # Consumer
+    - WMT
+    - PG
+    - KO
+    - MCD
+    # Energy
+    - XOM
+    - CVX
+    # Tech / telecom
+    - IBM
+    - INTC
+    - VZ
+    - T
+    # ETFs — good for broad momentum reads
+    - SPY
+    - QQQ
+    - IWM
+    - XLF
+    - XLE
+
+  # Data
+  lookback_period: "3mo"      # yfinance period string
+  min_bars: 30                # minimum bars needed to screen
+
+  # MA windows
+  ma_fast: 5
+  ma_mid: 10
+  ma_slow: 20
+
+  # Momentum / breakout
+  momentum_window: 10         # N-day rolling high for momentum check
+  breakout_window: 20         # N-day high for breakout proximity
+  breakout_pct: 0.95          # price must be >= this × N-day high
+
+  # Volume
+  volume_window: 20            # rolling window for volume spike check
+  volume_spike_mult: 0.8      # volume must be this × rolling avg
+
+  # Quality filters — these prevent junk passing the screen
+  min_price: 5.0              # skip penny stocks below this price
+  min_avg_volume: 500000      # skip illiquid stocks (20-day avg volume)
+  min_atr_pct: 0.01           # skip low-vol stocks (ATR must be >1% of price)

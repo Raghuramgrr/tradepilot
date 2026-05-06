@@ -23,6 +23,9 @@ from .execution.router import route, route_exit
 from .memory import context
 from .risk import monitor as exit_monitor
 from .strategy import backtest
+from .strategy import momentum as momentum_strategy
+from .data import screener as stock_screener
+
 from .utils.display import (
     console, print_header, print_signals,
     print_portfolio, print_skipped, get_logger
@@ -31,10 +34,15 @@ from .utils.display import (
 log = get_logger(__name__)
 
 
-def run_once(mode: str):
+def run_once(mode: str, args=None):
     config = cfg.load()
-    tickers = config["watchlist"]
-
+    if args.mode == args.mode and getattr(args, "screener", False):
+            tickers = stock_screener.run()
+            if not tickers:
+                console.print("[yellow]  Screener returned no results — falling back to watchlist.[/yellow]\n")
+                tickers = config["watchlist"]
+    else:
+            tickers = config["watchlist"]
     print_header(mode)
 
     # Load persistent state
@@ -70,6 +78,24 @@ def run_once(mode: str):
             skipped.append((ticker, result["reason"]))
         else:
             signals.append(result)
+    momentum_signals = []
+    skipped_tickers = [t for t, _ in skipped]
+ 
+    for ticker in skipped_tickers:
+        if ticker not in market_data:
+            continue
+        result = momentum_strategy.evaluate(ticker, market_data[ticker], portfolio)
+        if result is not None:
+            momentum_signals.append(result)
+ 
+    if momentum_signals:
+        momentum_signals.sort(key=lambda s: s["confidence"], reverse=True)
+        console.print("[dim]  Momentum signals:[/dim]")
+        print_signals(momentum_signals)
+        for sig in momentum_signals:
+            if sig["ticker"] in portfolio.get("positions", {}):
+                continue
+            portfolio = route(sig, portfolio, mode)
 
     # Sort by confidence descending
     signals.sort(key=lambda s: s["confidence"], reverse=True)
@@ -165,6 +191,9 @@ def main():
                         help="Reset agent state to defaults")
     parser.add_argument("--status", action="store_true",
                         help="Show portfolio status and exit")
+    parser.add_argument("--screener", action="store_true",
+                        help="Build watchlist dynamically via momentum screener")
+ 
     args = parser.parse_args()
 
     if args.reset:
@@ -193,13 +222,14 @@ def main():
         console.print(f"[dim]Running every {args.loop}s — Ctrl+C to stop[/dim]\n")
         try:
             while True:
-                run_once(args.mode)
+                run_once(args.mode, args)
                 time.sleep(args.loop)
         except KeyboardInterrupt:
             exit_monitor.stop()                            # ADD THIS LINE
             console.print("\n[dim]Agent stopped.[/dim]")
     else:
-        run_once(args.mode)
+        run_once(args.mode, args)
+
 
 
 if __name__ == "__main__":
