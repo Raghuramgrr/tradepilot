@@ -25,6 +25,10 @@ from .risk import monitor as exit_monitor
 from .strategy import backtest
 from .strategy import momentum as momentum_strategy
 from .data import screener as stock_screener
+from .signals.explainer import explain_ticker, print_explain
+from .data.scanner  import run as market_scan, print_scan_results
+from .data.universe import load as load_universe
+
 
 from .utils.display import (
     console, print_header, print_signals,
@@ -55,7 +59,17 @@ def run_once(mode: str, args=None):
     vix = fetch_vix()
     if vix:
         console.print(f"  [dim]VIX[/dim] [white]{vix:.1f}[/white]\n")
-
+    if getattr(args, "explain", False):
+        console.print("[dim]  Running signal explainer...[/dim]\n")
+        explain_results = []
+        for ticker in tickers:
+            df = market_data.get(ticker)
+            if df is None:
+                continue
+            result = explain_ticker(ticker, df, vix, portfolio, market_data)
+            explain_results.append(result)
+        print_explain(explain_results)
+        return   # explain mode exits after printing, doesn't route signals
     # Check exits on open positions first
     exits = check_exits(portfolio, market_data)
     if exits:
@@ -193,6 +207,16 @@ def main():
                         help="Show portfolio status and exit")
     parser.add_argument("--screener", action="store_true",
                         help="Build watchlist dynamically via momentum screener")
+    parser.add_argument("--explain", action="store_true",
+                        help="Show per-ticker gate diagnostics and near misses")
+    parser.add_argument("--scan", action="store_true",
+                        help="Scan S&P 500 + Russell 1000 for top setups")
+    parser.add_argument("--scan-top", type=int, default=20, metavar="N",
+                        help="How many top results to show (default 20)")
+    parser.add_argument("--scan-workers", type=int, default=10, metavar="N",
+                        help="Parallel fetch workers (default 10)")
+    parser.add_argument("--scan-refresh", action="store_true",
+                        help="Force refresh ticker universe cache")
  
     args = parser.parse_args()
 
@@ -208,7 +232,23 @@ def main():
         market_data = fetch_all(tickers)
         backtest.run_universe(tickers, market_data)
         return
-
+    if args.scan:
+        vix = fetch_vix()
+        results = market_scan(
+            vix=vix,
+            top_n=args.scan_top,
+            workers=args.scan_workers,
+            force_refresh_universe=args.scan_refresh,
+        )
+        print_scan_results(results, top_n=args.scan_top)
+ 
+        # Offer to add top picks to watchlist
+        if results:
+            top = [r["ticker"] for r in results[:5]]
+            console.print(
+                "  [dim]Run with --scan-add to append top picks to config.yaml watchlist[/dim]\n"
+            )
+        return
     if args.status:
         show_status()
         return

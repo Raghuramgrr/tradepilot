@@ -48,6 +48,13 @@ def evaluate(ticker: str, df: pd.DataFrame, vix: float | None,
 
 
     if confidence < min_conf or direction is None:
+        # Return structured skip so explain mode can log near misses
+        if confidence > 0:   # had a direction but not enough score
+            return {
+                "ticker": ticker,
+                "skipped": True,
+                "reason": f"conf={confidence:.0f}<{min_conf} dir={direction}",
+            }
         return None
  
     # ── 3b. Multi-timeframe confirmation ─────────────────────────────
